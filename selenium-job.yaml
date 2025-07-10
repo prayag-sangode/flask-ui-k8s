@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: selenium-ui-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: test
+        image: python:3.12-slim
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apt-get update &&           apt-get install -y curl unzip chromium-driver chromium &&           pip install pytest selenium pytest-html &&           echo "$(cat /tests/test_ui.py)" > test_ui.py &&           pytest test_ui.py --html=/reports/report.html --self-contained-html
+        env:
+        - name: PATH
+          value: "/usr/lib/chromium:/usr/bin:/bin:/usr/local/bin"
+        - name: CHROME_BIN
+          value: "/usr/bin/chromium"
+        volumeMounts:
+        - name: test-code
+          mountPath: /tests
+        - name: html-report
+          mountPath: /reports
+      restartPolicy: Never
+      volumes:
+      - name: test-code
+        configMap:
+          name: test-ui-code
+      - name: html-report
+        persistentVolumeClaim:
+          claimName: shared-report-pvc
